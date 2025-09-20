@@ -1,51 +1,24 @@
-# 採購週報 Dashboard v2（靜態版）
+# 採購週報 Dashboard v3（靜態版）
 
-**新功能**  
-- ✅ 多資料來源切換（`data/sources.json`）  
-- ✅ 上傳 **Excel / CSV** 即時解析（SheetJS）  
-- ✅ KPI 門檻可自訂（localStorage 儲存，紅/黃/綠即時套用）
+**新功能（Report Builder）**
+- ✅ 一鍵生成「個人報告 PDF」：封面 + KPI + 重點摘要 + Top N 品項 + 類別貢獻 + 延遲清單
+- ✅ 可選擇 Top N 件數（3–20）
+- ✅ 繼承 v2 功能：多資料切換、Excel/CSV 上傳、KPI 門檻設定、PDF/XLSX 匯出、Pivot 與原始明細
 
 ## 快速開始
-1. 將全部檔案上傳到 GitHub repo 根目錄。
-2. 打開 `Settings → Pages` 啟用 GitHub Pages（或使用 `.github/workflows/pages.yml` 自動部署）。
-3. 開啟頁面後，右上可切換資料來源、上傳 Excel/CSV、調整 KPI 門檻。
+1. 上傳整包到 GitHub repo。
+2. 啟用 **GitHub Pages** 或使用內附 `.github/workflows/pages.yml` 自動部署。
+3. 開啟頁面，選擇「採購姓名」與「週別」→ 按 **生成個人報告**，即會下載 PDF。
 
-## 資料來源管理
-- 編輯 `data/sources.json`：
-```json
-{
-  "default": "data/sample_w36.csv",
-  "options": [
-    { "label": "範例 W36", "path": "data/sample_w36.csv" },
-    { "label": "範例 W37", "path": "data/sample_w37.csv" }
-  ]
-}
-```
-- CSV 欄位需為：`date, week, buyer, category, item, qty, amount, target, margin, ontime`。
+## 報告內容說明
+- 封面：顯示報告對象（採購）、週別、四大 KPI（總金額、達成率、交期達成率、平均毛利率）。
+- 重點摘要：依 KPI 門檻自動產生「達標/接近/未達標」提示。
+- Top N 品項：依金額排序取前 N 筆。
+- 類別貢獻：列出各類別金額與占比。
+- 延遲清單：列出延遲（非準時）品項供追蹤。
 
-## KPI 門檻設定（預設值）
-- 達成率：綠 ≥ **100%**、黃 ≥ **95%**
-- 交期達成率：綠 ≥ **95%**、黃 ≥ **90%**
-
-你可以按「KPI 設定」開啟設定視窗，修改後會儲存在瀏覽器的 localStorage。
-
-## 上傳 Excel（.xlsx）對應欄位
-若你的 Excel 為中文欄名，支援以下自動對應：  
-`日期→date`、`週別→week`、`採購→buyer`、`類別→category`、`品名→item`、`數量→qty`、`金額→amount`、`目標→target`、`毛利率→margin`、`交期→ontime`
-
-## 檔案結構
-```
-.
-├─ index.html
-├─ assets/
-│  └─ app.js
-├─ data/
-│  ├─ sample_w36.csv
-│  ├─ sample_w37.csv
-│  └─ sources.json
-└─ .github/workflows/
-   └─ pages.yml
-```
+## 資料欄位
+`date, week, buyer, category, item, qty, amount, target, margin, ontime`。Excel 上傳支援中文表頭自動對應。
 
 ---
 Made for Sinya 采購週報 by ChatGPT
