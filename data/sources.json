@@ -1,0 +1,13 @@
+{
+  "default": "data/sample_w36.csv",
+  "options": [
+    {
+      "label": "範例 W36",
+      "path": "data/sample_w36.csv"
+    },
+    {
+      "label": "範例 W37",
+      "path": "data/sample_w37.csv"
+    }
+  ]
+}
