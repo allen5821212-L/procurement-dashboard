@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>採購週報 Dashboard</title>
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2canvas & jsPDF for PDF export -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Day.js -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <style>
+      :root {
+        --card: #0b0f17;
+        --muted: #121826;
+        --border: #1f2937;
+      }
+      body { background:#0a0e14; color:#e5e7eb; }
+      .card { background: var(--card); border:1px solid var(--border); border-radius: 1rem; }
+      .chip { padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+      .chip.green { background: rgba(16,185,129,.15); color: #10b981; border: 1px solid #10b98133; }
+      .chip.yellow { background: rgba(234,179,8,.15); color: #f59e0b; border: 1px solid #f59e0b33; }
+      .chip.red { background: rgba(239,68,68,.15); color: #ef4444; border: 1px solid #ef444433; }
+      .table { width: 100%; border-collapse: collapse; }
+      .table th, .table td { border-bottom: 1px solid var(--border); padding: .6rem .75rem; text-align: left; }
+      .table th { color:#9ca3af; font-weight:600; }
+      .muted { color:#9ca3af; }
+      .btn { padding: .6rem .9rem; border-radius: .75rem; border:1px solid var(--border); background:#101625; }
+      .btn:hover { border-color:#2b3a55; }
+      .grid-3 { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:1rem; }
+      .grid-2 { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:1rem; }
+      @media (max-width: 900px){
+        .grid-3,.grid-2{ grid-template-columns: 1fr; }
+      }
+      .title { font-size: 1.8rem; font-weight: 800; letter-spacing: .3px; }
+      .subtitle { font-size: .95rem; }
+      .kpi { font-size: 1.6rem; font-weight: 800; }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <div class="title">採購週報 Dashboard</div>
+          <div class="subtitle muted">集中化視覺化｜個人化匯出｜即時 KPI</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <select id="buyerSelect" class="btn"></select>
+          <input id="weekInput" type="week" class="btn" />
+          <button id="resetBtn" class="btn">重置</button>
+          <button id="exportPDFBtn" class="btn">匯出 PDF</button>
+          <button id="exportXLSXBtn" class="btn">匯出 Excel</button>
+        </div>
+      </div>
+
+      <!-- KPI -->
+      <div id="kpiRow" class="grid-4 grid-2 mb-6">
+        <div class="card p-4">
+          <div class="muted mb-1">總採購金額</div>
+          <div id="kpiAmount" class="kpi">-</div>
+        </div>
+        <div class="card p-4">
+          <div class="muted mb-1">達成率</div>
+          <div class="flex items-center gap-2">
+            <div id="kpiRate" class="kpi">-</div>
+            <span id="kpiRateChip" class="chip">-</span>
+          </div>
+        </div>
+        <div class="card p-4">
+          <div class="muted mb-1">交期達成率</div>
+          <div class="flex items-center gap-2">
+            <div id="kpiOnTime" class="kpi">-</div>
+            <span id="kpiOnTimeChip" class="chip">-</span>
+          </div>
+        </div>
+        <div class="card p-4">
+          <div class="muted mb-1">平均毛利率</div>
+          <div id="kpiMargin" class="kpi">-</div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-6">
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">採購金額（類別）</div>
+            <div class="muted text-sm" id="sumByCategoryInfo">—</div>
+          </div>
+          <canvas id="barByCategory" height="220"></canvas>
+        </div>
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold">每週採購趨勢</div>
+            <div class="muted text-sm" id="trendInfo">—</div>
+          </div>
+          <canvas id="lineTrend" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="card p-4 mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">採購 × 商品類別（Pivot）</div>
+          <div class="muted text-sm">點欄位可排序</div>
+        </div>
+        <div class="overflow-x-auto">
+          <table id="pivotTable" class="table"></table>
+        </div>
+      </div>
+
+      <div class="card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">原始明細</div>
+          <div class="muted text-sm">支援 CSV / Excel 來源</div>
+        </div>
+        <div class="overflow-x-auto">
+          <table id="rawTable" class="table"></table>
+        </div>
+      </div>
+    </div>
+
+    <script src="./assets/app.js"></script>
+  </body>
+</html>
