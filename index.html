@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>採購週報 Dashboard v3</title>
+    <title>採購週報 Dashboard v3.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -13,12 +13,12 @@
       :root{ --card:#0b0f17; --muted:#121826; --border:#1f2937; }
       body{ background:#0a0e14; color:#e5e7eb; }
       .card{ background:var(--card); border:1px solid var(--border); border-radius:1rem; }
-      .btn{ padding:.6rem .9rem; border-radius:.75rem; border:1px solid var(--border); background:#101625; }
+      .btn{ padding:.55rem .85rem; border-radius:.6rem; border:1px solid var(--border); background:#101625; }
       .chip{ padding:2px 8px; border-radius:9999px; font-size:12px; font-weight:600; }
       .green{ background:rgba(16,185,129,.15); color:#10b981; border:1px solid #10b98133; }
       .yellow{ background:rgba(234,179,8,.15); color:#f59e0b; border:1px solid #f59e0b33; }
       .red{ background:rgba(239,68,68,.15); color:#ef4444; border:1px solid #ef444433; }
-      .table{ width:100%; border-collapse:collapse; } .table th,.table td{ border-bottom:1px solid var(--border); padding:.6rem .75rem; text-align:left; }
+      .table{ width:100%; border-collapse:collapse; } .table th,.table td{ border-bottom:1px solid var(--border); padding:.55rem .7rem; text-align:left; }
       .table th{ color:#9ca3af; font-weight:600; }
       .muted{ color:#9ca3af; }
       .grid-2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
@@ -26,34 +26,27 @@
       .title{ font-size:1.8rem; font-weight:800; letter-spacing:.3px; }
       .kpi{ font-size:1.6rem; font-weight:800; }
       dialog::backdrop{ background: rgba(0,0,0,.5); }
-      /* Report canvas */
-      #reportRoot { display:none; padding:32px; font-family: ui-sans-serif, system-ui; }
-      #reportRoot .section { margin-bottom: 18px; }
-      #reportRoot h1 { font-size: 28px; font-weight:800; margin: 0 0 8px; }
-      #reportRoot h2 { font-size: 18px; font-weight:700; margin: 12px 0 6px; }
-      #reportRoot .kv { display:flex; gap:12px; flex-wrap:wrap; }
-      #reportRoot .kv div { background:#0d1422; border:1px solid #22304a; padding:8px 10px; border-radius:10px; }
-      #reportRoot table { width:100%; border-collapse: collapse; }
-      #reportRoot th, #reportRoot td { border-bottom:1px solid #22304a; padding:8px; text-align:left; font-size: 12px; }
-      #reportRoot .small { font-size: 11px; color:#9ca3af; }
+      input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+      input[type="number"]{ -moz-appearance:textfield; }
     </style>
   </head>
   <body>
     <div class="max-w-7xl mx-auto px-4 py-8">
       <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
-          <div class="title">採購週報 Dashboard v3</div>
-          <div class="muted text-sm">報告產生器｜多資料切換｜自訂 KPI 門檻｜上傳 Excel/CSV</div>
+          <div class="title">採購週報 Dashboard v3.1</div>
+          <div class="muted text-sm">報告產生器｜多資料切換｜自訂 KPI ｜上傳 Excel/CSV｜<b>個人目標/實績填寫</b></div>
         </div>
-        <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap">
           <select id="sourceSelect" class="btn"></select>
           <input id="uploadInput" type="file" class="hidden" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
           <button id="uploadBtn" class="btn">上傳 Excel/CSV</button>
           <select id="buyerSelect" class="btn"></select>
           <input id="weekInput" type="week" class="btn" />
-          <input id="topNInput" type="number" min="3" max="20" value="5" class="btn w-28" title="Top N 件數"/>
+          <input id="topNInput" type="number" min="3" max="20" value="5" class="btn w-24" title="Top N 件數"/>
           <button id="resetBtn" class="btn">重置</button>
           <button id="settingsBtn" class="btn">KPI 設定</button>
+          <button id="planBtn" class="btn">目標/實績填寫</button>
           <button id="buildReportBtn" class="btn">生成個人報告</button>
           <button id="exportPDFBtn" class="btn">匯出 PDF</button>
           <button id="exportXLSXBtn" class="btn">匯出 Excel</button>
@@ -143,8 +136,49 @@
       </form>
     </dialog>
 
-    <!-- Hidden Report Root for PDF composing -->
-    <div id="reportRoot"></div>
+    <!-- Personal Plan Dialog -->
+    <dialog id="planDialog" class="w-full max-w-3xl rounded-2xl card p-0">
+      <form method="dialog">
+        <div class="p-5 border-b border-slate-700 flex items-center justify-between">
+          <div>
+            <div class="text-lg font-bold">個人目標 / 實績填寫</div>
+            <div id="planTitle" class="muted text-sm"></div>
+          </div>
+          <div class="flex gap-2">
+            <button id="planAddRow" class="btn" type="button">新增分類</button>
+            <button id="planExport" class="btn" type="button">匯出 CSV</button>
+          </div>
+        </div>
+        <div class="p-5 overflow-x-auto" style="max-height:60vh">
+          <table class="table w-full" id="planTable">
+            <thead>
+              <tr>
+                <th style="min-width:160px">產品分類</th>
+                <th style="min-width:120px">目標金額</th>
+                <th style="min-width:120px">實際金額</th>
+                <th style="min-width:100px">達成率</th>
+                <th style="min-width:80px">操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr>
+                <td><b>合計</b></td>
+                <td id="planSumTarget">-</td>
+                <td id="planSumActual">-</td>
+                <td id="planSumRate">-</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+          <div class="muted text-xs mt-2">提示：目標/實際填入數字（TWD），系統即時計算達成率；資料會儲存在你的瀏覽器（localStorage）。</div>
+        </div>
+        <div class="p-5 flex justify-end gap-2 border-t border-slate-700">
+          <button id="planCancel" class="btn">關閉</button>
+          <button id="planSave" class="btn">儲存</button>
+        </div>
+      </form>
+    </dialog>
 
     <script src="./assets/app.js"></script>
   </body>
